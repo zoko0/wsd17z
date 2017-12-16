@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">wsd_chat</string>
+    <string name="button_text">Bluetooth ON/OFF</string>
 </resources>
