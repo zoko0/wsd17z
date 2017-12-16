@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -16,8 +17,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
-    
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener{
+
     BluetoothAdapter mBluetoothAdapter;
     public ArrayList<BluetoothDevice> mBTDevices = new ArrayList<>();
     public DeviceListAdapter mDeviceListAdapter;
@@ -92,6 +93,31 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private BroadcastReceiver mBroadcastReceiver4 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+
+            if(action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)){
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+                // polaczone
+                if (device.getBondState() == BluetoothDevice.BOND_BONDED){
+                    System.out.println("BT, bonding: Polaczony");
+                }
+                // tworzenie polaczenia
+                if (device.getBondState() == BluetoothDevice.BOND_BONDING){
+                    System.out.println("BT, bonding: W trakcie podlaczania");
+                }
+
+                // zerwanie polaczenia
+                if (device.getBondState() == BluetoothDevice.BOND_NONE){
+                    System.out.println("BT, bonding: Brak");
+                }
+            }
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,9 +129,13 @@ public class MainActivity extends AppCompatActivity {
         lvNewDevices = (ListView) findViewById(R.id.lvNewDevices);
         mBTDevices = new ArrayList<>();
 
+        lvNewDevices.setOnItemClickListener(MainActivity.this);
+
         System.out.println("Wlaczenie aplikacji.");
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        registerReceiver(mBroadcastReceiver4, filter);
 
         btnONOFF.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -169,31 +199,35 @@ public class MainActivity extends AppCompatActivity {
             registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
         }
 
-
+        Toast.makeText(MainActivity.this, "Click on device you want to bond", Toast.LENGTH_SHORT).show();
 
     }
-            /*
-        // sprawdza czy sa sparowane urzadzenia; jesli tak to pobiera nazwe i adres kazdego z nich
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        if (pairedDevices.size() > 0) { // Czy sa sparowane urzadzenia
-            System.out.println("Znaleziono saprowane urzadzenia.");
-            for (BluetoothDevice device : pairedDevices) {
-                String deviceName = device.getName();
-                String deviceHardwareAddress = device.getAddress(); // MAC
-            }
-        }
 
-        // zarejestruj jesli urzadzenie zostalo odkryte..
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(mReceiver, filter);
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+        mBluetoothAdapter.cancelDiscovery();
+
+        System.out.println("Wybrano urzadzenie do sparowania");
+
+        String deviceName = mBTDevices.get(i).getName();
+        String deviceAddress = mBTDevices.get(i).getAddress();
+
+        System.out.println("Nazwa urzadzenia: " + deviceName);
+        System.out.println("MAC adres urzadzenia: " + deviceAddress);
+
+        mBTDevices.get(i).createBond();
+        System.out.println("Proba polaczenia");
     }
-    */
 
-    // wyrejestruj odbiornik przy wylaczeniu apki
+    // wywal odbiorniki przy wylaczeniu apki
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mReceiver);
+        unregisterReceiver(mBroadcastReceiver2);
+        unregisterReceiver(mBroadcastReceiver3);
+        unregisterReceiver(mBroadcastReceiver4);
     }
 
 }
