@@ -10,22 +10,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final int REQUEST_ENABLE_BT = 1;
-
+    
     BluetoothAdapter mBluetoothAdapter;
+    public ArrayList<BluetoothDevice> mBTDevices = new ArrayList<>();
+    public DeviceListAdapter mDeviceListAdapter;
+    ListView lvNewDevices;
 
-    //
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(mBluetoothAdapter.ACTION_STATE_CHANGED)) {
-                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, mBluetoothAdapter.ERROR);
+            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
 
                 switch(state){
                     case BluetoothAdapter.STATE_OFF:
@@ -45,11 +48,60 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final BroadcastReceiver mBroadcastReceiver2 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)) {
+                int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR);
+
+                switch(mode){
+                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                        System.out.println("Pozwala sie odkryc urzadzeniom: ON");
+                        break;
+                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+                        System.out.println("Pozwala sie odkryc urzadzeniomd: OFF. Mozliwosc odbioru polaczen");
+                        break;
+                    case BluetoothAdapter.SCAN_MODE_NONE:
+                        System.out.println("Pozwala sie odkryc urzadzeniom: OFF");
+                        break;
+                    case BluetoothAdapter.STATE_CONNECTING:
+                        System.out.println("Pozwala sie odkryc urzadzeniomn: W trakcie laczenia");
+                        break;
+                    case BluetoothAdapter.STATE_CONNECTED:
+                        System.out.println("Pozwala sie odkryc urzadzeniom: Polaczono");
+                        break;
+                }
+            }
+        }
+    };
+
+    // bedzie wyswietlal urzadzenia
+    private BroadcastReceiver mBroadcastReceiver3 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+
+            if (action.equals(BluetoothDevice.ACTION_FOUND)){
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                mBTDevices.add(device);
+                System.out.println("Znaleziono urzadzenie: " + device.getName() + "; " + device.getAddress());
+                mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
+                lvNewDevices.setAdapter(mDeviceListAdapter);
+            }
+        }
+    };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Button btnONOFF = (Button) findViewById(R.id.btnONOFF);
+        Button btnDiscoverable = (Button) findViewById(R.id.btnDiscoverable);
+        Button btnFindUnpairedDevices = (Button) findViewById(R.id.btnFindUnpairedDevices);
+        lvNewDevices = (ListView) findViewById(R.id.lvNewDevices);
+        mBTDevices = new ArrayList<>();
 
         System.out.println("Wlaczenie aplikacji.");
 
@@ -58,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
         btnONOFF.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                System.out.println("Przycisk: Wlacz modul Bluetooth");
                 enableDisableBT();
             }
         });
@@ -88,6 +141,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void btnEnableDisable_Discoverable(View view) {
+        System.out.println("Przycisk: Odkrywanie urzadzen wcisniety. Urzadzenie pozwala sie odkryc przez 300s");
+        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        startActivity(discoverableIntent);
+
+        IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
+        registerReceiver(mBroadcastReceiver2, intentFilter);
+    }
+
+    public void btnDiscover(View view){
+        if(mBluetoothAdapter.isDiscovering()){
+            mBluetoothAdapter.cancelDiscovery();
+
+            System.out.println("Przycisk: Restartuje wyszukiwanie urzadzen jesli juz szukal");
+
+            mBluetoothAdapter.startDiscovery();
+            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+        }
+        if (!mBluetoothAdapter.isDiscovering()){
+            System.out.println("Przycisk: Wyszukuje niesparowanych urzadzen");
+
+            mBluetoothAdapter.startDiscovery();
+            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+        }
+
+
+
+    }
             /*
         // sprawdza czy sa sparowane urzadzenia; jesli tak to pobiera nazwe i adres kazdego z nich
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
@@ -111,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         unregisterReceiver(mReceiver);
     }
+
 }
 
 
