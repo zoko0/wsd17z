@@ -1,6 +1,8 @@
 package zokoo.wsd_chat;
 
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
@@ -11,6 +13,7 @@ import java.util.UUID;
 public class BTConnectionService {
     private static final String appname = "MYAPP";
     private static final UUID UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+    ProgressDialog mProcessDialog;
 
     private final BluetoothAdapter mBluetoothAdapter;
     Context mContext;
@@ -20,7 +23,7 @@ public class BTConnectionService {
         mContext = context;
     }
 
-    // nasluchuje polaczen
+    // watek do nasluchiwania polaczen
     private class AcceptThread extends Thread{
         private final BluetoothServerSocket mmServerSocket;
 
@@ -64,6 +67,32 @@ public class BTConnectionService {
                 }
             }
         }
+
+        }
+    }
+
+    // watek do nawiazywania polaczen
+    private class ConnectThread extends Thread {
+        private BluetoothSocket mmSocket;
+
+        public ConnectThread(BluetoothDevice device, UUID uuid) {
+            System.out.println("Watek polaczenia - start");
+            mmDevice = device;
+            deviceUUID = uuid;
+        }
+
+        // odpala sie autamtycznie
+        public void run() {
+            BluetoothSocket tmp = null;
+            System.out.println("Proba polaczenia");
+
+            try{
+
+            } catch (IOException e) {
+                System.out.println("ERROR: IOException");
+                e.printStackTrace();
+            }
+
 
         }
     }
