@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -13,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.charset.Charset;
@@ -36,6 +38,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     Button btnSend;
 
     EditText etText;
+
+    TextView incomingMessages;
+    StringBuilder messages;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -131,6 +136,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
+    private BroadcastReceiver mReceiver5 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String text = intent.getStringExtra("theMessage");
+            messages.append(text + "\n");
+            etText.setText("");
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,11 +159,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         btnStartConnection = (Button) findViewById(R.id.startconnection);
         etText = (EditText) findViewById(R.id.editText);
 
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         lvNewDevices.setOnItemClickListener(MainActivity.this);
 
         System.out.println("Wlaczenie aplikacji.");
 
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver5, new IntentFilter("incomingMessage "));
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(mBroadcastReceiver4, filter);
@@ -169,7 +183,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 System.out.println("Przycisk: Rozpocznij polaczenie");
                 startConnection();
             }
-
         });
 
         btnSend.setOnClickListener(new View.OnClickListener() {
@@ -180,7 +193,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 mBluetoothConnection.write(bytes);
             }
         });
-
     }
 
     public void startConnection(){
