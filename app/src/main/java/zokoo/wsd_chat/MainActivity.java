@@ -11,10 +11,13 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener{
 
@@ -23,56 +26,67 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public DeviceListAdapter mDeviceListAdapter;
     ListView lvNewDevices;
 
+    BTConnectionService mBluetoothConnection;
+
+    private static final UUID UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+
+    BluetoothDevice mBTDevice;
+
+    Button btnStartConnection;
+    Button btnSend;
+
+    EditText etText;
+
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+        String action = intent.getAction();
+        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+            final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
 
-                switch(state){
-                    case BluetoothAdapter.STATE_OFF:
-                        System.out.println("Stan: off");
-                        break;
-                    case BluetoothAdapter.STATE_ON:
-                        System.out.println("Stan: on");
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_OFF:
-                        System.out.println("Stan: w trakcie przelaczenia na OFF");
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_ON:
-                        System.out.println("Stan: w trakcie przelaczenia na ON");
-                        break;
-                }
+            switch(state){
+                case BluetoothAdapter.STATE_OFF:
+                    System.out.println("Stan: off");
+                    break;
+                case BluetoothAdapter.STATE_ON:
+                    System.out.println("Stan: on");
+                    break;
+                case BluetoothAdapter.STATE_TURNING_OFF:
+                    System.out.println("Stan: w trakcie przelaczenia na OFF");
+                    break;
+                case BluetoothAdapter.STATE_TURNING_ON:
+                    System.out.println("Stan: w trakcie przelaczenia na ON");
+                    break;
             }
+        }
         }
     };
 
     private final BroadcastReceiver mBroadcastReceiver2 = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (action.equals(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)) {
-                int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR);
+        String action = intent.getAction();
+        if (action.equals(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)) {
+            int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR);
 
-                switch(mode){
-                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
-                        System.out.println("Pozwala sie odkryc urzadzeniom: ON");
-                        break;
-                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
-                        System.out.println("Pozwala sie odkryc urzadzeniomd: OFF. Mozliwosc odbioru polaczen");
-                        break;
-                    case BluetoothAdapter.SCAN_MODE_NONE:
-                        System.out.println("Pozwala sie odkryc urzadzeniom: OFF");
-                        break;
-                    case BluetoothAdapter.STATE_CONNECTING:
-                        System.out.println("Pozwala sie odkryc urzadzeniomn: W trakcie laczenia");
-                        break;
-                    case BluetoothAdapter.STATE_CONNECTED:
-                        System.out.println("Pozwala sie odkryc urzadzeniom: Polaczono");
-                        break;
-                }
+            switch(mode){
+                case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                    System.out.println("Pozwala sie odkryc urzadzeniom: ON");
+                    break;
+                case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+                    System.out.println("Pozwala sie odkryc urzadzeniomd: OFF. Mozliwosc odbioru polaczen");
+                    break;
+                case BluetoothAdapter.SCAN_MODE_NONE:
+                    System.out.println("Pozwala sie odkryc urzadzeniom: OFF");
+                    break;
+                case BluetoothAdapter.STATE_CONNECTING:
+                    System.out.println("Pozwala sie odkryc urzadzeniomn: W trakcie laczenia");
+                    break;
+                case BluetoothAdapter.STATE_CONNECTED:
+                    System.out.println("Pozwala sie odkryc urzadzeniom: Polaczono");
+                    break;
             }
+        }
         }
     };
 
@@ -80,40 +94,40 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private BroadcastReceiver mBroadcastReceiver3 = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
+        final String action = intent.getAction();
 
-            if (action.equals(BluetoothDevice.ACTION_FOUND)){
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                mBTDevices.add(device);
-                System.out.println("Znaleziono urzadzenie: " + device.getName() + "; " + device.getAddress());
-                mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
-                lvNewDevices.setAdapter(mDeviceListAdapter);
-            }
+        if (action.equals(BluetoothDevice.ACTION_FOUND)){
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            mBTDevices.add(device);
+            System.out.println("Znaleziono urzadzenie: " + device.getName() + "; " + device.getAddress());
+            mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
+            lvNewDevices.setAdapter(mDeviceListAdapter);
+        }
         }
     };
 
     private BroadcastReceiver mBroadcastReceiver4 = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        final String action = intent.getAction();
 
-            if(action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)){
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+        if(action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)){
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-                // polaczone
-                if (device.getBondState() == BluetoothDevice.BOND_BONDED){
-                    System.out.println("BT, bonding: Polaczony");
-                }
-                // tworzenie polaczenia
-                if (device.getBondState() == BluetoothDevice.BOND_BONDING){
-                    System.out.println("BT, bonding: W trakcie podlaczania");
-                }
-
-                // zerwanie polaczenia
-                if (device.getBondState() == BluetoothDevice.BOND_NONE){
-                    System.out.println("BT, bonding: Brak");
-                }
+            // polaczone
+            if (device.getBondState() == BluetoothDevice.BOND_BONDED){
+                System.out.println("BT, bonding: Polaczony");
             }
+            // tworzenie polaczenia
+            if (device.getBondState() == BluetoothDevice.BOND_BONDING){
+                System.out.println("BT, bonding: W trakcie podlaczania");
+            }
+
+            // zerwanie polaczenia
+            if (device.getBondState() == BluetoothDevice.BOND_NONE){
+                System.out.println("BT, bonding: Brak");
+            }
+        }
         }
     };
 
@@ -123,16 +137,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Button btnONOFF = (Button) findViewById(R.id.btnONOFF);
-        Button btnDiscoverable = (Button) findViewById(R.id.btnDiscoverable);
-        Button btnFindUnpairedDevices = (Button) findViewById(R.id.btnFindUnpairedDevices);
+        // Button btnDiscoverable = (Button) findViewById(R.id.btnDiscoverable);
+        // Button btnFindUnpairedDevices = (Button) findViewById(R.id.btnFindUnpairedDevices);
         lvNewDevices = (ListView) findViewById(R.id.lvNewDevices);
         mBTDevices = new ArrayList<>();
+
+        btnSend = (Button) findViewById(R.id.send);
+        btnStartConnection = (Button) findViewById(R.id.startconnection);
+        etText = (EditText) findViewById(R.id.editText);
 
         lvNewDevices.setOnItemClickListener(MainActivity.this);
 
         System.out.println("Wlaczenie aplikacji.");
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(mBroadcastReceiver4, filter);
 
@@ -143,6 +162,34 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 enableDisableBT();
             }
         });
+
+        btnStartConnection.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                System.out.println("Przycisk: Rozpocznij polaczenie");
+                startConnection();
+            }
+
+        });
+
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                System.out.println("Przycisk: Wyslij wiadomosc");
+                byte[] bytes = etText.getText().toString().getBytes(Charset.defaultCharset());
+                mBluetoothConnection.write(bytes);
+            }
+        });
+
+    }
+
+    public void startConnection(){
+        startBTConnection(mBTDevice, UUID_INSECURE);
+    }
+
+    public void startBTConnection(BluetoothDevice device, UUID uuid){
+        System.out.println("Laczenie przez modul Bluetooth");
+        mBluetoothConnection.startClient(device, uuid);
     }
 
     public void enableDisableBT(){
@@ -217,6 +264,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         mBTDevices.get(i).createBond();
         System.out.println("Proba polaczenia");
+
+        mBTDevice = mBTDevices.get(i);
+        mBluetoothConnection = new BTConnectionService(MainActivity.this);
     }
 
     // wywal odbiorniki przy wylaczeniu apki

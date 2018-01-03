@@ -18,7 +18,7 @@ public class BTConnectionService {
     private static final UUID UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
     ProgressDialog mProcessDialog;
 
-    private final BluetoothAdapter mBluetoothAdapter = null;
+    private BluetoothAdapter mBluetoothAdapter = null;
     Context mContext;
 
     private AcceptThread mInsecureAcceptThread;
@@ -28,9 +28,10 @@ public class BTConnectionService {
 
     private ConnectedThread mConnectedThread;
 
-    public BTConnectionService(Context context, BluetoothAdapter mBluetoothAdapter) {
+    public BTConnectionService(Context context) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mContext = context;
+        start();
     }
 
     // watek do nasluchiwania polaczen
@@ -172,8 +173,11 @@ public class BTConnectionService {
             InputStream tmpIn = null;
             OutputStream  tmpOut = null;
 
-            mProcessDialog.dismiss();
-
+            try {
+                mProcessDialog.dismiss();
+            } catch (NullPointerException e){
+                e.printStackTrace();
+            }
             try {
                 tmpIn = mmSocket.getInputStream();
                 tmpOut = mmSocket.getOutputStream();
