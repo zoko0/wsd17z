@@ -8,6 +8,9 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.UUID;
 
 public class BTConnectionService {
@@ -22,6 +25,8 @@ public class BTConnectionService {
     private ConnectThread mConnectThread;
     private BluetoothDevice mmDevice;
     private UUID deviceUUID;
+
+    private ConnectedThread mConnectedThread;
 
     public BTConnectionService(Context context, BluetoothAdapter mBluetoothAdapter) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -117,6 +122,7 @@ public class BTConnectionService {
             connected(mmSocket, mmDevice);
         }
 
+
         public void cancel() {
             System.out.println("Zamknij polaczenie.");
             try{
@@ -128,7 +134,7 @@ public class BTConnectionService {
         }
     }
 
-    // rozpoczyna chat
+    // czeka na polaczenia i rozpoczyna chat
     public synchronized void start(){
         System.out.println("Start chat");
 
@@ -145,12 +151,93 @@ public class BTConnectionService {
 
     //
     public void startClient(BluetoothDevice device, UUID uuid){
-        System.out.println("###");
+        System.out.println("Start client");
 
         // inicjujue processdialog
         mProcessDialog = ProgressDialog.show(mContext, "Connecting Bluetooth", "Please Wait...", true);
 
         mConnectThread = new ConnectThread(device, uuid);
         mConnectThread.start();
+    }
+
+    private class ConnectedThread extends Thread{
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        public ConnectedThread(BluetoothSocket socket){
+            System.out.println("Start ConnectedThread");
+
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream  tmpOut = null;
+
+            mProcessDialog.dismiss();
+
+            try {
+                tmpIn = mmSocket.getInputStream();
+                tmpOut = mmSocket.getOutputStream();
+            } catch (IOException e) {
+                System.out.println("Err message: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+
+        public void run(){
+            byte[] buffer = new byte[1024];
+            int bytes;
+
+            while (true){
+                try {
+                    bytes = mmInStream.read(buffer);
+                    String incomingMessage = new String(buffer, 0, bytes);
+                    System.out.println("Input stream: " + incomingMessage);
+                } catch (IOException e) {
+                    System.out.println("Err czytanie inputu: " + e.getMessage());
+                    e.printStackTrace();
+                    break;
+                }
+            }
+        }
+
+        public void write(byte[] bytes){
+            String text = new String(bytes, Charset.defaultCharset());
+            System.out.println("Output stream: " + text);
+            try{
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+                System.out.println("Err czytanie outputu: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        public void cancel() {
+            System.out.println("Zamknij polaczenie.");
+            try{
+                mmSocket.close();
+            } catch (IOException e){
+                System.out.println("ERROR: IOException");
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private void connected(BluetoothSocket mmSocket, BluetoothDevice mmDevice) {
+        System.out.println("Start watku do zarzadzania polaczeniem");
+
+        mConnectedThread = new ConnectedThread(mmSocket);
+        mConnectedThread.start();
+    }
+
+    public void write(byte[] out){
+        ConnectedThread r;
+
+        //
+        System.out.println("Wywolano call");
+        mConnectedThread.write(out);
     }
 }
