@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         public void onReceive(Context context, Intent intent) {
             String text = intent.getStringExtra("theMessage");
             messages.append(text + "\n");
-            etText.setText("");
+            incomingMessages.setText(messages);
         }
     };
 
@@ -164,6 +164,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         System.out.println("Wlaczenie aplikacji.");
 
+        incomingMessages = (TextView) findViewById(R.id.incomingMessage);
+        messages = new StringBuilder();
         LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver5, new IntentFilter("incomingMessage "));
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
@@ -191,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 System.out.println("Przycisk: Wyslij wiadomosc");
                 byte[] bytes = etText.getText().toString().getBytes(Charset.defaultCharset());
                 mBluetoothConnection.write(bytes);
+                etText.setText("");
             }
         });
     }
