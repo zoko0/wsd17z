@@ -164,9 +164,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         System.out.println("Wlaczenie aplikacji.");
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver5, new IntentFilter("incomingMessage"));
         incomingMessages = (TextView) findViewById(R.id.incomingMessage);
         messages = new StringBuilder();
-        LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver5, new IntentFilter("incomingMessage "));
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(mBroadcastReceiver4, filter);
@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 System.out.println("Przycisk: Wlacz modul Bluetooth");
                 enableDisableBT();
             }
-        });
+        });x
 
         btnStartConnection.setOnClickListener(new View.OnClickListener() {
             @Override

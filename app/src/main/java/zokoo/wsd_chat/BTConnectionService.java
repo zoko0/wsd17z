@@ -147,7 +147,7 @@ public class BTConnectionService {
             mConnectThread = null;
         }
         if (mInsecureAcceptThread == null){
-            mInsecureAcceptThread.cancel();
+            mInsecureAcceptThread = new AcceptThread();
             mInsecureAcceptThread.start();
         }
     }
